@@ -4,13 +4,25 @@ const User = require('../models/user');
 const router = new express.Router();
 
 // POST - Create a user.
-router.post('/createUser', (req, res) => {
+router.post('/createUser', async (req, res) => {
   const user = new User(req.body);
-  user.save().then(() => {
-    res.status(201).send(user);
-  }).catch((error) => {
-    res.status(400).send(error);
-  });
+  try {
+    await user.save();
+    const token = await user.generateAuthToken();
+    res.status(200).send({ user, token });
+  } catch (e) {
+    res.status(400).send(e);
+  }
+});
+
+router.post('/users/login', async (req, res) => {
+  try {
+    const user = await User.findByCredentials(req.body.email, req.body.password);
+    const token = await user.generateAuthToken();
+    res.send({ user, token });
+  } catch (e) {
+    res.status(400).send();
+  }
 });
 
 // GET - Get list of all users.
@@ -36,7 +48,7 @@ router.get('/users/:id', (req, res) => {
 });
 
 // PATCH - Update user by id.
-router.patch('/users/:id', (req, res) => {
+router.patch('/users/:id', async (req, res) => {
   const updates = Object.keys(req.body);
   const allowedUpdates = ['name', 'email', 'password', 'age'];
   const isValidOperation = updates.every((update) => allowedUpdates.includes(update));
@@ -45,16 +57,20 @@ router.patch('/users/:id', (req, res) => {
     return res.status(400).send({ 'error': 'Invalid updates.' });
   }
 
-  const _id = req.params.id;
-  // Here in options parameter, setting new to true will return new updated user.
-  User.findByIdAndUpdate(_id, req.body, { new: true, runValidators: true }).then((user) => {
+  try {
+    const user = await User.findById(req.params.id);
+    updates.forEach((update) => user[update] = req.body[update]);
+    await user.save();
+
     if (!user) {
       return res.status(404).send();
     }
+
     res.send(user);
-  }).catch((error) => {
-    res.status(400).send(error);
-  });
+
+  } catch (e) {
+    res.status(400).send(e);
+  }
 });
 
 // DELETE - Delete user by id.

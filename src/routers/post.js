@@ -36,7 +36,7 @@ router.get('/posts/:id', (req, res) => {
 });
 
 // PATCH - Update post by id.
-router.patch('/posts/:id', (req, res) => {
+router.patch('/posts/:id', async (req, res) => {
   const updates = Object.keys(req.body);
   const allowedUpdates = ['title'];
   const isValidOperation = updates.every((update) => allowedUpdates.includes(update));
@@ -45,16 +45,19 @@ router.patch('/posts/:id', (req, res) => {
     return res.status(400).send({ 'error': 'Invalid updates.' });
   }
 
-  const _id = req.params.id;
-  // Here in options parameter, setting new to true will return new updated post.
-  Post.findByIdAndUpdate(_id, req.body, { new: true, runValidators: true }).then((post) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    updates.forEach((update) => post[update] = req.body[update]);
+    await post.save();
+
     if (!post) {
       return res.status(404).send();
     }
+
     res.send(post);
-  }).catch((error) => {
-    res.status(400).send(error);
-  });
+  } catch (e) {
+    res.status(400).send(e);
+  }
 });
 
 // DELETE - Delete post by id.
