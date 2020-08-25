@@ -7,14 +7,6 @@ const jwt = require('jsonwebtoken');
 const app = express();
 const port = process.env.PORT || 3000;
 
-app.use((req, res, next) => {
-  if (req.method === 'GET') {
-
-  } else {
-    next();
-  }
-});
-
 app.use(express.json());
 app.use(userRouter);
 app.use(postRouter);

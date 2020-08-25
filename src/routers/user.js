@@ -1,6 +1,6 @@
 const express = require('express');
 const User = require('../models/user');
-
+const auth = require('../middleware/auth');
 const router = new express.Router();
 
 // POST - Create a user.
@@ -25,17 +25,13 @@ router.post('/users/login', async (req, res) => {
   }
 });
 
-// GET - Get list of all users.
-router.get('/users', (req, res) => {
-  User.find({}).then((users) => {
-    res.send(users);
-  }).catch(() => {
-    res.status(500).send();
-  });
+// GET - Get profile.
+router.get('/users/me', auth, (req, res) => {
+  res.send(req.user);
 });
 
 // GET - Get user by id.
-router.get('/users/:id', (req, res) => {
+router.get('/users/:id', auth, (req, res) => {
   const _id = req.params.id;
   User.findById(_id).then((user) => {
     if (!user) {
@@ -48,7 +44,7 @@ router.get('/users/:id', (req, res) => {
 });
 
 // PATCH - Update user by id.
-router.patch('/users/:id', async (req, res) => {
+router.patch('/users/:id', auth, async (req, res) => {
   const updates = Object.keys(req.body);
   const allowedUpdates = ['name', 'email', 'password', 'age'];
   const isValidOperation = updates.every((update) => allowedUpdates.includes(update));
@@ -74,7 +70,7 @@ router.patch('/users/:id', async (req, res) => {
 });
 
 // DELETE - Delete user by id.
-router.delete('/users/:id', (req, res) => {
+router.delete('/users/:id', auth, (req, res) => {
   const _id = req.params.id;
   User.findByIdAndDelete(_id).then((user) => {
     if (!user) {
