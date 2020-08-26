@@ -2,6 +2,7 @@ const express = require('express');
 const User = require('../models/user');
 const auth = require('../middleware/auth');
 const multer = require('multer');
+const sharp = required('sharp');
 const router = new express.Router();
 
 // POST - Create me.
@@ -31,7 +32,8 @@ const upload = multer({
 // POST - Avatar
 // "avatar" should match key sent in request.
 router.post('/users/me/avatar', auth, upload.single('avatar'), async (req, res) => {
-  req.user.avatar = req.file.buffer;
+  const buffer = await sharp(req.file.buffer).resize({ width: 250, height: 250 }).png().toBuffer();
+  req.user.avatar = buffer;
   await req.user.save();
   res.send();
 }, (error, req, res, next) => {  // Must contain 4 parameters, to let express know it is designed for error handling.
@@ -45,7 +47,7 @@ router.get('/users/:id/avatar', auth, async (req, res) => {
     if (!user || !user.avatar) {
       throw new Error();
     }
-    res.set('Content-Type', 'image/jpg');
+    res.set('Content-Type', 'image/png');
     res.send(user.avatar);
   } catch (e) {
     res.status(404).send();
