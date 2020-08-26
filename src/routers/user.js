@@ -3,8 +3,8 @@ const User = require('../models/user');
 const auth = require('../middleware/auth');
 const router = new express.Router();
 
-// POST - Create a user.
-router.post('/createUser', async (req, res) => {
+// POST - Create me.
+router.post('/users/me', async (req, res) => {
   const user = new User(req.body);
   try {
     await user.save();
@@ -67,8 +67,8 @@ router.get('/users/:id', auth, (req, res) => {
   });
 });
 
-// PATCH - Update user by id.
-router.patch('/users/:id', auth, async (req, res) => {
+// PATCH - Update me.
+router.patch('/users/me', auth, async (req, res) => {
   const updates = Object.keys(req.body);
   const allowedUpdates = ['name', 'email', 'password', 'age'];
   const isValidOperation = updates.every((update) => allowedUpdates.includes(update));
@@ -78,32 +78,22 @@ router.patch('/users/:id', auth, async (req, res) => {
   }
 
   try {
-    const user = await User.findById(req.params.id);
-    updates.forEach((update) => user[update] = req.body[update]);
-    await user.save();
-
-    if (!user) {
-      return res.status(404).send();
-    }
-
-    res.send(user);
-
+    updates.forEach((update) => req.user[update] = req.body[update]);
+    await req.user.save();
+    res.send(req.user);
   } catch (e) {
     res.status(400).send(e);
   }
 });
 
-// DELETE - Delete user by id.
-router.delete('/users/:id', auth, (req, res) => {
-  const _id = req.params.id;
-  User.findByIdAndDelete(_id).then((user) => {
-    if (!user) {
-      return res.status(404).send();
-    }
-    res.send(user);
-  }).catch((error) => {
+// DELETE - Delete me.
+router.delete('/users/me', auth, async (req, res) => {
+  try {
+    await req.user.remove();
+    res.send(req.user);
+  } catch (error) {
     res.status(400).send(error);
-  });
+  }
 });
 
 module.exports = router;

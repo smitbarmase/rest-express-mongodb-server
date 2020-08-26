@@ -1,16 +1,20 @@
 const express = require('express');
 const Post = require('../models/post');
-
+const auth = require('../middleware/auth');
 const router = new express.Router();
 
 // POST - Create a post.
-router.post('/createPost', (req, res) => {
-  const post = new Post(req.body);
-  post.save().then(() => {
-    res.status(201).send(post);
-  }).catch((error) => {
-    res.status(400).send(error);
+router.post('/posts', auth, async (req, res) => {
+  const post = new Post({
+    ...req.body,
+    owner: req.user._id
   });
+  try {
+    await post.save();
+    res.status(201).send(post);
+  } catch (e) {
+    res.status(400).send(e);
+  }
 });
 
 // GET - Get list of all posts.
