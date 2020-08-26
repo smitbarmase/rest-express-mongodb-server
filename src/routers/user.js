@@ -1,6 +1,7 @@
 const express = require('express');
 const User = require('../models/user');
 const auth = require('../middleware/auth');
+const multer = require('multer');
 const router = new express.Router();
 
 // POST - Create me.
@@ -15,6 +16,54 @@ router.post('/users/me', async (req, res) => {
   }
 });
 
+const upload = multer({
+  limits: {
+    fileSize: 1000000 // 1MB
+  },
+  fileFilter(req, file, cb) {
+    if (!file.originalname.match(/\.(jpg|png|jpeg)$/)) {
+      return cb(new Error('File must be an image.'));
+    }
+    return cb(undefined, true);
+  }
+});
+
+// POST - Avatar
+// "avatar" should match key sent in request.
+router.post('/users/me/avatar', auth, upload.single('avatar'), async (req, res) => {
+  req.user.avatar = req.file.buffer;
+  await req.user.save();
+  res.send();
+}, (error, req, res, next) => {  // Must contain 4 parameters, to let express know it is designed for error handling.
+  res.status(400).send({ error: error.message });
+});
+
+// GET - Avatar of any user with id.
+router.get('/users/:id/avatar', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user || !user.avatar) {
+      throw new Error();
+    }
+    res.set('Content-Type', 'image/jpg');
+    res.send(user.avatar);
+  } catch (e) {
+    res.status(404).send();
+  }
+});
+
+// DELETE - Avatar
+router.delete('/users/me/avatar', auth, async (req, res) => {
+  try {
+    req.user.avatar = undefined;
+    await req.user.save();
+    res.send();
+  } catch (e) {
+    res.status(400).send();
+  }
+});
+
+// Login
 router.post('/users/login', async (req, res) => {
   try {
     const user = await User.findByCredentials(req.body.email, req.body.password);
