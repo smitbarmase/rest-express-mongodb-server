@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const validator = require('validator');
 const bcryptjs = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const Post = require('../models/post');
 
 const userSchema = new mongoose.Schema({
   name: {
@@ -47,6 +48,14 @@ const userSchema = new mongoose.Schema({
       required: true
     }
   }]
+}, {
+  timestamps: true
+});
+
+userSchema.virtual('posts', {
+  ref: 'Post',
+  localField: '_id',
+  foreignField: 'owner'
 });
 
 // It has to match "toJSON", to make this work.
@@ -92,6 +101,13 @@ userSchema.pre('save', async function (next) {
     user.password = await bcryptjs.hash(user.password, 8);
   }
 
+  next();
+});
+
+// Delete user posts when user is deleted.
+userSchema.pre('remove', async function (next) {
+  const user = this;
+  await Post.deleteMany({ owner: user._id });
   next();
 });
 

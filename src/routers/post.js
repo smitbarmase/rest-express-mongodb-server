@@ -1,6 +1,7 @@
 const express = require('express');
 const Post = require('../models/post');
 const auth = require('../middleware/auth');
+const User = require('../models/user');
 const router = new express.Router();
 
 // POST - Create a post.
@@ -17,30 +18,46 @@ router.post('/posts', auth, async (req, res) => {
   }
 });
 
-// GET - Get list of all posts.
-router.get('/posts', (req, res) => {
-  Post.find({}).then((posts) => {
-    res.send(posts);
-  }).catch(() => {
+// GET - Get list of all posts by user id.
+router.get('/users/:id/posts', auth, async (req, res) => {
+  try {
+    const user = await User.findOne({ _id: req.params.id });
+    await user.populate({
+      path: 'posts',
+      // ?key=value - For filtering
+      //match: { key: value}
+      options: {
+        // ?limit=10&skip=0 - For pagination
+        limit: parseInt(req.query.limit),
+        skip: parseInt(req.query.skip),
+        sort: {
+          // ?sortBy=createdAt_desc - For sorting
+          // createdAt: 1 (for ascending) or -1 (for descending)
+        }
+      }
+    }).execPopulate();
+    res.send(user.posts);
+  } catch (e) {
     res.status(500).send();
-  });
+  }
 });
 
-// GET - Get post by id.
-router.get('/posts/:id', (req, res) => {
+// GET - Get any post by id.
+router.get('/posts/:id', auth, async (req, res) => {
   const _id = req.params.id;
-  Post.findById(_id).then((post) => {
+  try {
+    const post = await Post.findOne({ _id });
     if (!post) {
       return res.status(404).send();
     }
     res.send(post);
-  }).catch(() => {
+  } catch (e) {
     res.status(500).send();
-  });
+  }
 });
 
-// PATCH - Update post by id.
-router.patch('/posts/:id', async (req, res) => {
+// PATCH - Update post by id and it should be me.
+router.patch('/posts/:id', auth, async (req, res) => {
   const updates = Object.keys(req.body);
   const allowedUpdates = ['title'];
   const isValidOperation = updates.every((update) => allowedUpdates.includes(update));
@@ -50,13 +67,14 @@ router.patch('/posts/:id', async (req, res) => {
   }
 
   try {
-    const post = await Post.findById(req.params.id);
-    updates.forEach((update) => post[update] = req.body[update]);
-    await post.save();
+    const post = await Post.findOne({ _id: req.params.id, owner: req.user._id });
 
     if (!post) {
       return res.status(404).send();
     }
+
+    updates.forEach((update) => post[update] = req.body[update]);
+    await post.save();
 
     res.send(post);
   } catch (e) {
@@ -64,17 +82,17 @@ router.patch('/posts/:id', async (req, res) => {
   }
 });
 
-// DELETE - Delete post by id.
-router.delete('/posts/:id', (req, res) => {
-  const _id = req.params.id;
-  Post.findByIdAndDelete(_id).then((post) => {
+// DELETE - Delete post by id and it should be me.
+router.delete('/posts/:id', auth, async (req, res) => {
+  try {
+    const post = await Post.findOneAndDelete({ _id: req.params.id, owner: req.user._id });
     if (!post) {
       return res.status(404).send();
     }
     res.send(post);
-  }).catch((error) => {
-    res.status(400).send(error);
-  });
+  } catch (e) {
+    res.status(500).send(e);
+  }
 });
 
 module.exports = router;
