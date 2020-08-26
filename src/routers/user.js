@@ -2,7 +2,7 @@ const express = require('express');
 const User = require('../models/user');
 const auth = require('../middleware/auth');
 const multer = require('multer');
-const sharp = required('sharp');
+const sharp = require('sharp');
 const router = new express.Router();
 
 // POST - Create me.
