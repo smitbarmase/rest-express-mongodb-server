@@ -1,4 +1,4 @@
-# Rest Express MongoDB Server
+# REST Express MongoDB Server
 
 [![GitHub license](https://img.shields.io/github/license/smitbarmase/rest-express-mongodb-server)](https://github.com/smitbarmase/rest-express-mongodb-server/blob/master/LICENSE)
 ![GitHub repo size](https://img.shields.io/github/repo-size/smitbarmase/rest-express-mongodb-server)
