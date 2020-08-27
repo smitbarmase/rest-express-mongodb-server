@@ -17,7 +17,9 @@ This project will run on **NodeJs** using **MongoDB** as database. Project is op
 - JSON Web Tokens for multiple sessions
 - Validation
 - Middleware
-- Sorting, Pagination and Filtering
+- Sorting
+- Pagination
+- Filtering
 - File Uploads
 - Light-weight project
 
